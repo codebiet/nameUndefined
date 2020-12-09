@@ -325,11 +325,14 @@ radio:checked{
   font-family: "Roboto Mono", monospace;
   font-weight:500;
   max-width: 70vw;
+  width: fit-content;
 }
 .success{
   background-color:#00b448f5;
 }
 .error{
-  padding: 0;
   background-color:#ff0d36ef;
+}
+.info{
+  background-color: rgb(0, 179, 179);
 }

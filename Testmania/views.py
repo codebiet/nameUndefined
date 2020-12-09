@@ -103,13 +103,13 @@ def takeTestView(request):
             if questDetail is None:
                 messages.success(request,"You have completed this test. please proceed to test taken section to see result")
 
-                return redirect('dashboard/')
+                return redirect('/dashboard/')
             questDetail.update(getUser(request))
             query_set[0].participants.add(request.user)
             return render(request,"displayQuestion.html",questDetail)
         else:
             messages.error(request,"Requested contest doesn't exist")
-            return redirect("takeTest/")
+            return redirect("/taketest/")
     else:
         messages.info(request,"Please ask contest id by the author of the test.")
         form={"onGoingContest":ongoingContestsUtil(request)}
@@ -184,14 +184,14 @@ def displayQuesView(request):
         
         if questDetail is None:
             messages.success(request,"Thanks for participating, please proceed to test taken section to check results")
-            return redirect("/dashboard")
+            return redirect("/dashboard/")
         questDetail.update(getUser(request))
         return render(request,"displayQuestion.html",questDetail)
 
 
     else:
 
-        return redirect('/takeTest/')
+        return redirect('/taketest/')
         
 
 @login_required
