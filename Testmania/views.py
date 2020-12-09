@@ -19,6 +19,7 @@ def homePage(request):
 # To display Registration Page
 def registerView(request):
     if request.user.is_authenticated:
+        messages.info(request,"You are already registered")
         return redirect("/")
     if request.method=="POST":
         form=registerForm(request.POST)
@@ -29,7 +30,7 @@ def registerView(request):
             profile=Profile.objects.create(user=user)
             profile.save
             login(request,user)
-            messages.success(request,"welcome {username}".format(username=user.username))
+            messages.success(request,"welcome {username}! You're successfully registered.".format(username=user.username))
             return redirect('/',{'info':"Registration Successful"})
         else:
             return render(request,'register.html',{'form':form})
@@ -37,23 +38,21 @@ def registerView(request):
         form=registerForm()
         return render(request,'register.html',{'form':form})
 
-
 #To display login Page
 def loginView(request):
     if request.user.is_authenticated:
+        messages.info(request,"You're already in.")
         return redirect("/")
     if request.method=="POST":
         form=loginForm(request.POST)
         if form.is_valid():
             username=form.cleaned_data['username']
             password=form.cleaned_data['password']
-
             user=authenticate(request,username=username,
             password=password)
             if user is not None:
                 login(request,user)
                 messages.success(request,"welcome {username}".format(username=user.username))
-
                 return redirect("/")
             else:
                 form.add_error(None,"incorrect username or password")
@@ -102,16 +101,17 @@ def takeTestView(request):
         if query_set.count()>0:
             questDetail=displayUtil(request,query_set[0])
             if questDetail is None:
-                messages.success(request,"You have completed this test. see dashboard to check score")
+                messages.success(request,"You have completed this test. please proceed to test taken section to see result")
 
-                return redirect('/')
+                return redirect('dashboard/')
             questDetail.update(getUser(request))
             query_set[0].participants.add(request.user)
             return render(request,"displayQuestion.html",questDetail)
         else:
             messages.error(request,"Requested contest doesn't exist")
-            return redirect("/")
+            return redirect("takeTest/")
     else:
+        messages.info(request,"Please ask contest id by the author of the test.")
         form={"onGoingContest":ongoingContestsUtil(request)}
         return render(request,'takeTest.html',form)
     
@@ -175,6 +175,7 @@ def displayQuesView(request):
         elif option=='C':
             q.responseC.add(request.user)
         else:
+            messages.info(request,"Since you haven't provided any option so, option D is set as default")
             q.responseD.add(request.user)
         q.save()
         
@@ -372,7 +373,7 @@ def contest_records(request,contest_id):
             obj=i.profile
             values.append([i.username,getScore(i,contest_id),i.email,obj.Branch,obj.Roll_no])
         except:
-            values.append([i.username,getScore(i,contest_id),i.email,'not_updated_profile','not_updated_profile'])
+            values.append([i.username,getScore(i,contest_id),i.email,'You have not provided us yet','You have not provided us yet'])
 
     return render(request,'contest_records.html',{'participants':values,"a":True,"username":request.user.username})
 

@@ -3,11 +3,6 @@
 {% load crispy_forms_tags %}
 <div>
 <h1>Update Profile</h1>
-<form enctype="multipart/form-data" action="" method="POST" class="form-group">
-    {% csrf_token %}
     {% crispy form %}
-
-    <input type="submit" class="btn-success" value="submit"></input>
-</form>
 </div>
 {% endblock bodyContent %}

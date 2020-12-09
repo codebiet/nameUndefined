@@ -2,6 +2,7 @@ from django import forms
 from .models import Contests,Questions,Profile
 from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
 
 
 inputDateFormat=[   '%Y-%m-%d',      # 2006-10-25
@@ -55,7 +56,11 @@ class createQuestionModelForm(forms.ModelForm):
         }
         
 class updateProfileForm(forms.ModelForm):
-    helper=FormHelper()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper=FormHelper()
+        self.helper.add_input(Submit('submit', 'Submit'))
+
     class Meta:
         model=Profile
         fields=['Profile_pic','Roll_no','Branch']

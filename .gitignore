@@ -1,2 +1,4 @@
 __pychache__/
 myVenv/
+media/
+db.sqlite3
