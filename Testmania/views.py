@@ -78,6 +78,10 @@ def createTestView(request):
         form=createTestModelForm(request.POST)
         if form.is_valid():
             contest=form.save(commit=False)
+            if contest.startDate>contest.endDate or (contest.startDate==contest.endDate and contest.endTime<contest.startTime):
+                messages.error(request,"Starting Time of the contest cannot exceed ending time.")
+                return render(request,"createTest.html",{'form':form})
+
             contest.Author=request.user
             contest.save()
             form=createQuestionModelForm()
@@ -85,7 +89,7 @@ def createTestView(request):
         else:
             messages.error(request,"failed with some internal error")
 
-            return redirect("/")
+            return render(request,"createTest.html",{'form':form,'a':True,'username':request.user.username})
     else:
         form=createTestModelForm()
         return render(request,"createTest.html",{'form':form,'a':True,'username':request.user.username})
@@ -99,6 +103,18 @@ def takeTestView(request):
         id=request.POST.get('id')
         query_set=Contests.objects.filter(pk=id)
         if query_set.count()>0:
+            contest=query_set[0]
+            currTime=datetime.now().time()
+            currDate=datetime.now().date()
+            if contest.startDate > currDate or (contest.startDate==currDate and contest.startTime>currTime):
+                messages.error(request, "Requested contest haven't started yet. It will start at {startTime} on {startDate}".format(startTime=contest.startTime,startDate=contest.startDate))
+                return redirect('/taketest/')
+
+            if contest.endDate < currDate or (contest.endDate==currDate and contest.endTime<currTime):
+                messages.error(request, "Requested Contest is over")
+                return redirect('/taketest/')
+
+
             questDetail=displayUtil(request,query_set[0])
             if questDetail is None:
                 messages.success(request,"You have completed this test. please proceed to test taken section to see result")
@@ -111,7 +127,8 @@ def takeTestView(request):
             messages.error(request,"Requested contest doesn't exist")
             return redirect("/taketest/")
     else:
-        messages.info(request,"Please ask contest id by the author of the test.")
+        print(request.user)
+        messages.info(request,"Please ask contest id by the author of the test. If you are the author then you can find contest id in test created section in your dashboard")
         form={"onGoingContest":ongoingContestsUtil(request)}
         return render(request,'takeTest.html',form)
     
@@ -131,9 +148,6 @@ def createQuestionView(request):
         ques=form.save(commit=False)
         ques.contest=contest
         ques.save()
-
-
-
         qNo=int(request.POST.get("qNo"))+1
         form=createQuestionModelForm()
 
@@ -168,16 +182,19 @@ def displayQuesView(request):
         contestId=request.POST.get('contestId')
         option=request.POST.get('option')
         q=Questions.objects.get(pk=quesId)
-        if option=='A':
-            q.responseA.add(request.user)
-        elif option=='B':
-            q.responseB.add(request.user)
-        elif option=='C':
-            q.responseC.add(request.user)
+        if request.user not in q.participants.all():
+            q.participants.add(request.user)
+            if option=='A':
+                q.responseA.add(request.user)
+            elif option=='B':
+                q.responseB.add(request.user)
+            elif option=='C':
+                q.responseC.add(request.user)
+            elif option=='D':
+                q.responseD.add(request.user)
+            q.save()
         else:
-            messages.info(request,"Since you haven't provided any option so, option D is set as default")
-            q.responseD.add(request.user)
-        q.save()
+            messages.error(request,"You have already submitted that question.")
         
         contest=Contests.objects.get(pk=contestId)
         questDetail=displayUtil(request,contest)
@@ -277,7 +294,7 @@ def testTakendetailsUtil(contest,user):
 
 #utility function to display a question
 def displayUtil(request,contestobj):
-    questionSet=Questions.objects.filter(contest=contestobj).exclude(responseA=request.user).exclude(responseB=request.user).exclude(responseC=request.user).exclude(responseD=request.user)
+    questionSet=Questions.objects.filter(contest=contestobj).exclude(participants=request.user)
     n=len(questionSet)
     if n==0:
         return None
@@ -297,7 +314,6 @@ def displayUtil(request,contestobj):
         'quesNo':tNo-n+1
     }
     return quesDetail
-
 
 def contestCreatedDetails(request):
     user=request.user
@@ -364,8 +380,13 @@ def getUser(request):
     if request.user.is_authenticated:
         auth=True
     return {'a':auth,'username':request.user.username,'info':""}
-
+@login_required
 def contest_records(request,contest_id):
+    contest=Contests.objects.get(id=contest_id)
+    print(contest.Author,request.user)
+    if contest.Author != request.user:
+        messages.error(request,"You are not allowed to visit that page.")
+        return redirect("/")
     query=User.objects.filter(contest_participants=contest_id)
     values=[]
     for i in query:
@@ -375,12 +396,12 @@ def contest_records(request,contest_id):
         except:
             values.append([i.username,getScore(i,contest_id),i.email,'You have not provided us yet','You have not provided us yet'])
 
-    return render(request,'contest_records.html',{'participants':values,"a":True,"username":request.user.username})
+    return render(request,'contest_records.html',{'participants':values,"a":True,"username":request.user.username,"contest":contest.contest})
 
 def ongoingContestsUtil(request):
     currTime=datetime.now().time()
     currDate=datetime.now().date()
-    querySet=Contests.objects.filter(startDate__lte=currDate,endDate__gte=currDate).exclude(startDate=currDate,startTime__gt=currTime).exclude(endDate=currDate,endTime__lt=currTime)
+    querySet=Contests.objects.filter(startDate__lte=currDate,endDate__gte=currDate).exclude(startDate=currDate,startTime__gt=currTime).exclude(endDate=currDate,endTime__lt=currTime).filter(isEditorsChoice=True)
     contestArray=[]
     for i in querySet:
         td={

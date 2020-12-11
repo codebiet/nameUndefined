@@ -11,8 +11,7 @@
     <div class="container">
     <input type="text" name="contestId" value={{contestId}} hidden>
     <input type="text" name="qNo" value={{qNo}} hidden>
-
-    {% crispy form %}
+    {{form|crispy}}
     </div>
     <input type="submit" class="btn btn-block btn-default mb-4">   
 </form>
